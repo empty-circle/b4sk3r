@@ -54,6 +54,8 @@ fi
 
 # Firewall foxing with nmap
 mac=$(openssl rand -hex 6 | sed 's/\(..\)/\1:/g; s/.$//')
+
+# Built-out nmap command
 nmap_command="nmap -sS -Pn --source-port 53 --randomize-hosts --host-timeout 1250 -p21,22,23,25,53,80,110,113,143,443,1723,3389,8080 -T2 --max-retries 1 --spoof
 -mac $mac --dns-servers 4.2.2.1,4.2.2.2 $ip $tgtrange -oG $output"
 
@@ -67,11 +69,10 @@ fi
 
 eval $nmap_command
 
-# Confirming the scan has completed
-echo "Completed. Check your output location: $output"
+# Completion confirm
+echo "Completed phase one. Your output location: $output"
 
-#lizard eye - file search module for b4sk3rRRB
-#ec314
+#lizard eye section - executes search for open ips and shunts them into a file
 
 file=$output
 output_file="open_ips.txt"
@@ -85,6 +86,8 @@ while read line; do
         fi
     fi
 done < "$file"
+
+#basker tail section - rolls through the open_ips and runs scans on them.
 
 while read ip; do
   nmap -sV -sC --spoof-mac $mac --source-port 53 -Pn -T2 "$ip" -oN basker-service.map
