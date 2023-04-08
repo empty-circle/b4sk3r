@@ -1,5 +1,6 @@
 #!/bin/bash
 # empty_circle - 2023
+# v1.5
 # B4sk34 Sc4nn3r is a stealthy recon scanner that seeks to automate target enumeration by vulnerable ports
 # It takes a range of IPs in CIDR notation, scans them all, parses them into a list, then passes them to
 # a final scanner that enumerates the services and runs safe script scans on the list of IPs.
@@ -13,6 +14,14 @@ print_banner() {
   banner+="\e[44m\e[97m#           150 hosts/30min            #\e[0m\n"
   banner+="\e[44m\e[97m########################################\e[0m"
   echo -e "${banner}"
+}
+
+# Generate a random MAC address with a valid OUI
+generate_random_mac() {
+  local OUI_LIST=("00:0C:29" "00:50:56" "00:1C:42" "00:1D:0F" "00:1E:68" "00:1F:29" "00:21:5A" "00:25:B5" "00:26:5E" "00:50:43")
+  local OUI=${OUI_LIST[$((RANDOM % ${#OUI_LIST[@]}))]}
+  local NIC=$(openssl rand -hex 3 | sed 's/\(..\)/\1:/g; s/.$//')
+  echo "$OUI:$NIC"
 }
 
 # Usage function call for user information
@@ -59,8 +68,8 @@ fi
 # Print banner
 print_banner
 
-# Generate random MAC address
-mac=$(openssl rand -hex 6 | sed 's/\(..\)/\1:/g; s/.$//')
+# Load a mac address for spoofing
+mac=$(generate_random_mac)
 
 # Build nmap command
 nmap_command="nmap -sS -Pn --source-port 53 --randomize-hosts --host-timeout 1250 -p21,22,23,25,53,80,110,113,143,443,1723,3389,8080 -T2 --max-retries 1 --spoof-mac $mac --dns-servers 4.2.2.1,4.2.2.2 $tgtrange -oG $output"
