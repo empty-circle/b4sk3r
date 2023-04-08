@@ -1,6 +1,6 @@
 #!/bin/bash
 # empty_circle - 2023
-# v1.5
+# v1.6
 # B4sk34 Sc4nn3r is a stealthy recon scanner that seeks to automate target enumeration by vulnerable ports
 # It takes a range of IPs in CIDR notation, scans them all, parses them into a list, then passes them to
 # a final scanner that enumerates the services and runs safe script scans on the list of IPs.
@@ -22,6 +22,20 @@ generate_random_mac() {
   local OUI=${OUI_LIST[$((RANDOM % ${#OUI_LIST[@]}))]}
   local NIC=$(openssl rand -hex 3 | sed 's/\(..\)/\1:/g; s/.$//')
   echo "$OUI:$NIC"
+}
+
+# Generate a random list of DNS servers
+generate_random_dns_servers() {
+  # List of popular public DNS server IPs
+  local DNS_SERVERS=("208.67.222.222" "208.67.220.220" "8.8.8.8" "8.8.4.4" "9.9.9.9" "149.112.112.112" "1.1.1.1" "1.0.0.1" "64.6.64.6" "64.6.65.6")
+
+  # Randomize the DNS_SERVERS array
+  local RANDOM_DNS_SERVERS=($(shuf -e "${DNS_SERVERS[@]}"))
+
+  # Join the randomized array with commas
+  local RANDOM_DNS_SERVERS_LIST=$(IFS=,; echo "${RANDOM_DNS_SERVERS[*]}")
+
+  echo "$RANDOM_DNS_SERVERS_LIST"
 }
 
 # Usage function call for user information
@@ -71,8 +85,12 @@ print_banner
 # Load a mac address for spoofing
 mac=$(generate_random_mac)
 
-# Build nmap command
-nmap_command="nmap -sS -Pn --source-port 53 --randomize-hosts --host-timeout 1250 -p21,22,23,25,53,80,110,113,143,443,1723,3389,8080 -T2 --max-retries 1 --spoof-mac $mac --dns-servers 4.2.2.1,4.2.2.2 $tgtrange -oG $output"
+# Load a list of random DNS servers
+random_dns_servers=$(generate_random_dns_servers)
+
+# Built out nmap command
+nmap_command="nmap -sS -Pn --source-port 53 --randomize-hosts --host-timeout 1250 -p21,22,23,25,53,80,110,113,143,443,1723,3389,8080 -T2 --max-retries 1 --spoof-mac $mac --dns-servers $random_dns_servers $tgtrange -oG $output"
+
 
 if [ "$verbose" -eq 1 ]; then
   nmap_command="$nmap_command -v"
@@ -103,7 +121,7 @@ done < "$file"
 
 # Basker tail section - rolls through the open_ips and runs scans on them.
 while read ip; do
-  nmap -sV -sC --spoof-mac $mac --source-port 53 -Pn -T3 "$ip" -oA basker-service.map
+  nmap -sV -sC --spoof-mac $mac --dns-servers $random_dns_servers --source-port 53 -Pn -T3 "$ip" -oA basker-service.map
   if [ $? -ne 0 ]; then
     echo "Error scanning $ip" >> basker-service-errors.log
   fi
