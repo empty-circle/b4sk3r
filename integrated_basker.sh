@@ -90,7 +90,7 @@ done < "$file"
 #basker tail section - rolls through the open_ips and runs scans on them.
 
 while read ip; do
-  nmap -sV -sC --spoof-mac $mac --source-port 53 -Pn -T2 "$ip" -oN basker-service.map
+  nmap -sV -sC --spoof-mac $mac --source-port 53 -Pn -T3 "$ip" -oN basker-service.map
   if [ $? -ne 0 ]; then
     echo "Error scanning $ip" >> basker-service-errors.log
   fi
