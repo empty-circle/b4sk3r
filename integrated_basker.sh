@@ -1,6 +1,6 @@
 #!/bin/bash
 # empty_circle - 2023
-# v2.0
+# v2.1
 # B4sk34 Sc4nn3r is a stealthy recon scanner that seeks to automate target enumeration by vulnerable ports.
 # It takes a range of IPs in CIDR notation, scans them all, parses them into a list, then passes them to
 # a final scanner that enumerates the services and runs safe script scans on the list of IPs.
@@ -41,17 +41,28 @@ function show_usage() {
 }
 
 function lizard_eye(){
-  open_ips_file="open_ips.txt"
-  touch "$open_ips_file"
-  while read -r line; do
-      if [[ $line =~ ^Host:\ (.+)[[:space:]]\(\)[[:space:]]Ports:\ (.+) ]]; then
-          ip=${BASH_REMATCH[1]}
-          ports=${BASH_REMATCH[2]}
-          if [[ $ports =~ (21|22|23|80|110|125|443|3306|5060|8080)/open ]]; then
-              echo "$ip" >> "$open_ips_file"
-          fi
-      fi
-  done < "$output_file"
+    output_file=$output_file
+    declare -A open_ips_files
+
+    open_ports=(21 22 23 80 110 125 443 3306 5060 8080)
+
+    for port in "${open_ports[@]}"; do
+        open_ips_files["$port"]="open_ips_port_$port.txt"
+        touch "${open_ips_files["$port"]}"
+    done
+
+    while read -r line; do
+        if [[ $line =~ ^Host:\ (.+)[[:space:]]\(\)[[:space:]]Ports:\ (.+) ]]; then
+            ip=${BASH_REMATCH[1]}
+            ports=${BASH_REMATCH[2]}
+
+            for port in "${open_ports[@]}"; do
+                if [[ $ports =~ $port/open ]]; then
+                    echo "$ip" >> "${open_ips_files["$port"]}"
+                fi
+            done
+        fi
+    done < "$output_file"
 }
 
 function basker_tail(){
@@ -118,9 +129,10 @@ echo "Completed phase one. Your output location: $output_file"
 # Call lizard eye
 lizard_eye
 
-echo "Completed phase two. Vulneable IP list created."
+echo "Completed phase two. Sorted lists created."
 
-# Call basker tail
-basker_tail
+# Call basker tail - removed for now
+# basker_tail
 
-echo "Phase three completed. Check your output files."
+#echo "Phase three completed. Check your output files."
+echo "Phase three skipped. Check your output files."
